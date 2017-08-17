@@ -15,16 +15,7 @@ class Agent(object):
 
     def subgrad(self):
         grad = self.x_i - self.p
-        # grad = np.zeros_like(self.x_i)
-        subgrad_l1 = np.zeros(self.m)
-        for i in range(len(self.x_i)):
-            if self.x_i[i] > 0:
-                subgrad_l1[i] = self.lamb
-            elif self.x_i[i] < 0:
-                subgrad_l1[i] = -self.lamb
-            else:
-                subgrad_l1[i] = 0
-
+        subgrad_l1 = self.lamb*np.sign(self.x_i)
         subgrad = grad + subgrad_l1
         return subgrad
 
@@ -35,11 +26,23 @@ class Agent(object):
         self.x[name] = x_j
 
     def s(self, k):
-        return 1.0/ (k + 10.0)
+        return 2.0/ (k + 10.0)
 
     def update(self, k):
         self.x[self.name] = self.x_i
-        self.x_i = np.dot(self.weight, self.x) - self.s(k) * self.subgrad()
+        self.x_i = np.dot(self.weight, self.x)
+        self.x_i = self.x_i- self.s(k) * self.subgrad()
+
+class Agent_L2(Agent):
+    def subgrad(self):
+        grad = self.x_i-self.p
+        grad_l2 = 2*self.lamb * self.x_i
+        return grad+grad_l2
+
+class Agent_Dist(Agent):
+    def subgrad(self):
+        grad = (self.x_i-self.p)/np.linalg.norm((self.x_i-self.p),2)
+        return grad
 
 
 class Agent_moment_CDC2017(Agent):
@@ -61,8 +64,19 @@ class Agent_moment_CDC2017(Agent):
         self.x[self.name] = self.x_i
         self.v[self.name] = self.v_i
 
-        self.v_i = self.gamma * np.dot(self.weight, self.v) + self.s(k)*(0.2) * self.subgrad()
+        self.v_i = self.gamma * np.dot(self.weight, self.v) + self.s(k)*(0.1) * self.subgrad()
         self.x_i = np.dot(self.weight, self.x) - self.v_i
+
+class Agent_moment_CDC2017_L2(Agent_moment_CDC2017):
+    def subgrad(self):
+        grad = self.x_i-self.p
+        grad_l2 = 2*self.lamb * self.x_i
+        return grad+grad_l2
+
+class Agent_moment_CDC2017_Dist(Agent_moment_CDC2017):
+    def subgrad(self):
+        grad = (self.x_i-self.p)/np.linalg.norm((self.x_i-self.p),2)
+        return grad
 
 class Agent_moment_CDC2017_s(Agent_moment_CDC2017):
     def update(self, k):
@@ -71,3 +85,18 @@ class Agent_moment_CDC2017_s(Agent_moment_CDC2017):
 
         self.v_i = self.gamma *self.s(k)/self.s(k-1)*np.dot(self.weight, self.v) + self.s(k)*(0.2) * self.subgrad()
         self.x_i = np.dot(self.weight, self.x) - self.v_i
+
+class Agent_harnessing(Agent):
+    def __init__(self, n, m, p, lamb, name, weight=None):
+        super(Agent_harnessing, self).__init__(n, m, p, lamb, name, weight)
+
+        self.v_i = self.subgrad()
+        self.v = np.zeros([self.n, self.m])
+        self.eta = 0.01
+
+    def update(self, k):
+        self.x[self.name] = self.x_i
+        self.v[self.name] = self.v_i
+        grad_bf = self.subgrad()
+        self.x_i = np.dot(self.weight, self.x) - self.v_i
+        self.v_i = np.dot(self.weight, self.v) + self.eta*( self.subgrad() -grad_bf)
