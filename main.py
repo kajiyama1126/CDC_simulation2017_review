@@ -72,7 +72,7 @@ def Dist_optimal_value(x_i, p, n, m, lamb):
     return f_opt
 
 
-def optimal_L1(n, m, lamb):
+def optimal_L1(n, m, lamb,R):
     """
     :param n: int
     :param m: int
@@ -83,7 +83,7 @@ def optimal_L1(n, m, lamb):
     # p = [np.array([1,1,0.1,1,0])  for i in range(n)]
     p_num = np.array(p)
     # np.reshape(p)
-    prob = Lasso_problem(n, m, p_num, lamb)
+    prob = Lasso_problem(n, m, p_num, lamb,R)
     prob.solve()
     x_opt = np.array(prob.x.value)  # 最適解
     x_opt = np.reshape(x_opt, (-1,))  # reshape
@@ -91,7 +91,7 @@ def optimal_L1(n, m, lamb):
     return p, x_opt, f_opt
 
 
-def optimal_L2(n, m, lamb):
+def optimal_L2(n, m, lamb,R):
     """
     :param n: int
     :param m: int
@@ -102,7 +102,7 @@ def optimal_L2(n, m, lamb):
     # p = [np.array([1,1,0.1,1,0])  for i in range(n)]
     p_num = np.array(p)
     # np.reshape(p)
-    prob = Ridge_problem(n, m, p_num, lamb)
+    prob = Ridge_problem(n, m, p_num, lamb,R)
     prob.solve()
     x_opt = np.array(prob.x.value)  # 最適解
     x_opt = np.reshape(x_opt, (-1,))  # reshape
@@ -110,7 +110,7 @@ def optimal_L2(n, m, lamb):
     return p, x_opt, f_opt
 
 
-def optimal_Dist(n, m, lamb):
+def optimal_Dist(n, m, lamb,R):
     """
     :param n: int
     :param m: int
@@ -121,7 +121,7 @@ def optimal_Dist(n, m, lamb):
     # p = [np.array([1,1,0.1,1,0])  for i in range(n)]
     p_num = np.array(p)
     # np.reshape(p)
-    prob = Dist_problem(n, m, p_num, lamb)
+    prob = Dist_problem(n, m, p_num, lamb,R)
     prob.solve()
     x_opt = np.array(prob.x.value)  # 最適解
     x_opt = np.reshape(x_opt, (-1,))  # reshape
@@ -130,14 +130,14 @@ def optimal_Dist(n, m, lamb):
 
 
 # @jit(f8[:](i8, i8, f8, f8, f8, i8, f8[:, :, :], f8, i8))
-def iteration_L1(n, m, p, step, lamb, test, P_history, f_opt, pattern):
+def iteration_L1(n, m, p, step, lamb,R, test, P_history, f_opt, pattern):
     Agents = []
     s = step[pattern]
     for i in range(n):
         if pattern % 2 == 0:
-            Agents.append(Agent(n, m, p[i], s, lamb, name=i, weight=None))
+            Agents.append(Agent(n, m, p[i], s, lamb, name=i, weight=None,R=R))
         elif pattern % 2 == 1:
-            Agents.append(Agent_moment_CDC2017(n, m, p[i], s, lamb, name=i, weight=None))
+            Agents.append(Agent_moment_CDC2017(n, m, p[i], s, lamb, name=i, weight=None,R=R))
 
     f_error_history = []
     for k in range(test):
@@ -169,14 +169,14 @@ def iteration_L1(n, m, p, step, lamb, test, P_history, f_opt, pattern):
 
 
 # @jit(f8[:](i8, i8, f8, f8, f8, i8, f8[:, :, :], f8, i8))
-def iteration_L2(n, m, p, step, lamb, test, P_history, f_opt, pattern):
+def iteration_L2(n, m, p, step, lamb,R, test, P_history, f_opt, pattern):
     Agents = []
     s = step[pattern]
     for i in range(n):
         if pattern % 2 == 0:
-            Agents.append(Agent_L2(n, m, p[i], s, lamb, name=i, weight=None))
+            Agents.append(Agent_L2(n, m, p[i], s, lamb, name=i, weight=None,R=R))
         elif pattern % 2 == 1:
-            Agents.append(Agent_moment_CDC2017_L2(n, m, p[i], s, lamb, name=i, weight=None))
+            Agents.append(Agent_moment_CDC2017_L2(n, m, p[i], s, lamb, name=i, weight=None,R=R))
 
     f_error_history = []
     for k in range(test):
@@ -208,14 +208,14 @@ def iteration_L2(n, m, p, step, lamb, test, P_history, f_opt, pattern):
 
 
 # @jit(f8[:](i8, i8, f8, f8, f8, i8, f8[:, :, :], f8, i8))
-def iteration_Dist(n, m, p, step, lamb, test, P_history, f_opt, pattern):
+def iteration_Dist(n, m, p, step, lamb,R, test, P_history, f_opt, pattern):
     Agents = []
     s = step[pattern]
     for i in range(n):
         if pattern == 0:
-            Agents.append(Agent_Dist(n, m, p[i], s, lamb, name=i, weight=None))
+            Agents.append(Agent_Dist(n, m, p[i], s, lamb, name=i, weight=None,R=R))
         elif pattern == 1:
-            Agents.append(Agent_moment_CDC2017_Dist(n, m, p[i], s, lamb, name=i, weight=None))
+            Agents.append(Agent_moment_CDC2017_Dist(n, m, p[i], s, lamb, name=i, weight=None,R=R))
 
     f_error_history = []
     for k in range(test):
@@ -254,32 +254,32 @@ def make_communication_graph(test):  # 通信グラフを作成＆保存
     return P, P_history
 
 
-def main_L1(n, m, step, lamb, pattern, test):
-    p, x_opt, f_opt = optimal_L1(n, m, lamb)
+def main_L1(n, m, step, lamb,R, pattern, test):
+    p, x_opt, f_opt = optimal_L1(n, m, lamb,R)
     P, P_history = make_communication_graph(test)
     f_error_history = [[] for i in range(pattern)]
     for agent in range(pattern):
-        f_error_history[agent] = iteration_L1(n, m, p, step, lamb, test, P_history, f_opt, agent)
+        f_error_history[agent] = iteration_L1(n, m, p, step, lamb,R, test, P_history, f_opt, agent)
     print('finish')
 
     make_graph(pattern, f_error_history,step)
 
-def main_L2(n, m, step, lamb, pattern, test):
-    p, x_opt, f_opt = optimal_L2(n, m, lamb)
+def main_L2(n, m, step, lamb,R, pattern, test):
+    p, x_opt, f_opt = optimal_L2(n, m, lamb,R)
     P, P_history = make_communication_graph(test)
     f_error_history = [[] for i in range(pattern)]
     for agent in range(pattern):
-        f_error_history[agent] = iteration_L2(n, m, p, step, lamb, test, P_history, f_opt, agent)
+        f_error_history[agent] = iteration_L2(n, m, p, step, lamb,R, test, P_history, f_opt, agent)
     print('finish')
     make_graph(pattern, f_error_history,step)
 
 
-def main_Dist(n, m, step, lamb, pattern, test):
-    p, x_opt, f_opt = optimal_Dist(n, m, lamb)
+def main_Dist(n, m, step, lamb,R, pattern, test):
+    p, x_opt, f_opt = optimal_Dist(n, m, lamb,R)
     P, P_history = make_communication_graph(test)
     f_error_history = [[] for i in range(pattern)]
     for agent in range(pattern):
-        f_error_history[agent] = iteration_Dist(n, m, p, step, lamb, test, P_history, f_opt, agent)
+        f_error_history[agent] = iteration_Dist(n, m, p, step, lamb,R, test, P_history, f_opt, agent)
     print('finish')
     make_graph(pattern, f_error_history,step)
 
@@ -300,11 +300,12 @@ if __name__ == '__main__':
     n = 50
     m = 10
     lamb = 0.1
+    R = 0.1
     np.random.seed(0)  # ランダム値固定
     pattern = 2
     test = 1000
     step = [0.5,0.5,1.,1.,2.,2.,3.,3.,5.,5.]
-    main_L1(n, m, step, lamb, pattern, test)
+    main_L1(n, m,  step, lamb,R, pattern, test)
     print(time.time() - t)
     # main_L2(n, m, step, lamb, pattern, test)
     # main_Dist(n, m, step, lamb, pattern, test)
