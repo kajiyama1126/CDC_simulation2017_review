@@ -2,10 +2,11 @@ import numpy as np
 
 
 class Agent(object):
-    def __init__(self, n, m, p, lamb, name, weight=None):
+    def __init__(self, n, m, p,step, lamb, name, weight=None):
         self.n = n
         self.m = m
         self.p = p
+        self.step = step
         self.lamb = lamb
         self.name = name
         self.weight = weight
@@ -26,7 +27,7 @@ class Agent(object):
         self.x[name] = x_j
 
     def s(self, k):
-        return 2.0/ (k + 10.0)
+        return self.step/ (k + 1.0)
 
     def update(self, k):
         self.x[self.name] = self.x_i
@@ -46,8 +47,8 @@ class Agent_Dist(Agent):
 
 
 class Agent_moment_CDC2017(Agent):
-    def __init__(self, n, m, p, lamb, name, weight=None):
-        super(Agent_moment_CDC2017, self).__init__(n, m, p, lamb, name, weight)
+    def __init__(self, n, m, p,step, lamb, name, weight=None):
+        super(Agent_moment_CDC2017, self).__init__(n, m, p,step, lamb, name, weight)
         self.gamma = 0.9
 
         self.v_i = self.subgrad()
@@ -78,13 +79,13 @@ class Agent_moment_CDC2017_Dist(Agent_moment_CDC2017):
         grad = (self.x_i-self.p)/np.linalg.norm((self.x_i-self.p),2)
         return grad
 
-class Agent_moment_CDC2017_s(Agent_moment_CDC2017):
-    def update(self, k):
-        self.x[self.name] = self.x_i
-        self.v[self.name] = self.v_i
-
-        self.v_i = self.gamma *self.s(k)/self.s(k-1)*np.dot(self.weight, self.v) + self.s(k)*(0.2) * self.subgrad()
-        self.x_i = np.dot(self.weight, self.x) - self.v_i
+# # class Agent_moment_CDC2017_s(Agent_moment_CDC2017):
+#     def update(self, k):
+#         self.x[self.name] = self.x_i
+#         self.v[self.name] = self.v_i
+#
+#         self.v_i = self.gamma *self.s(k)/self.s(k-1)*np.dot(self.weight, self.v) + self.s(k)*(0.2) * self.subgrad()
+#         self.x_i = np.dot(self.weight, self.x) - self.v_i
 
 class Agent_harnessing(Agent):
     def __init__(self, n, m, p, lamb, name, weight=None):
