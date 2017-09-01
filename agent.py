@@ -2,7 +2,7 @@ import numpy as np
 
 
 class Agent(object):
-    def __init__(self, n, m, p,step, lamb, name, weight=None):
+    def __init__(self, n, m, p,step, lamb, name, weight=None,R = 100000):
         self.n = n
         self.m = m
         self.p = p
@@ -10,8 +10,9 @@ class Agent(object):
         self.lamb = lamb
         self.name = name
         self.weight = weight
-
+        self.R = R
         self.x_i = np.random.rand(self.m)
+        self.x_i = self.project(self.x_i)
         self.x = np.zeros([self.n, self.m])
 
     def subgrad(self):
@@ -29,10 +30,19 @@ class Agent(object):
     def s(self, k):
         return self.step/ (k + 1.0)
 
+    def project(self,x):
+        if np.linalg.norm(x) <= self.R:
+            return x
+        else:
+            y = (self.R/np.linalg.norm(x)) * x
+            return y
+
+
     def update(self, k):
         self.x[self.name] = self.x_i
         self.x_i = np.dot(self.weight, self.x)
         self.x_i = self.x_i- self.s(k) * self.subgrad()
+        self.x_i = self.project(self.x_i)
 
 class Agent_L2(Agent):
     def subgrad(self):
@@ -47,8 +57,8 @@ class Agent_Dist(Agent):
 
 
 class Agent_moment_CDC2017(Agent):
-    def __init__(self, n, m, p,step, lamb, name, weight=None):
-        super(Agent_moment_CDC2017, self).__init__(n, m, p,step, lamb, name, weight)
+    def __init__(self, n, m, p,step, lamb, name, weight=None,R = 100000):
+        super(Agent_moment_CDC2017, self).__init__(n, m, p,step, lamb, name, weight,R)
         self.gamma = 0.9
 
         self.v_i = self.subgrad()
@@ -67,6 +77,7 @@ class Agent_moment_CDC2017(Agent):
 
         self.v_i = self.gamma * np.dot(self.weight, self.v) + self.s(k)*(0.1) * self.subgrad()
         self.x_i = np.dot(self.weight, self.x) - self.v_i
+        self.x_i = self.project(self.x_i)
 
 class Agent_moment_CDC2017_L2(Agent_moment_CDC2017):
     def subgrad(self):

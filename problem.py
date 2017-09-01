@@ -2,11 +2,12 @@ import cvxpy as cvx
 import numpy as np
 
 class Lasso_problem(object):
-    def __init__(self, n,m,p,lamb):
+    def __init__(self, n,m,p,lamb,R):
         self.n = n
         self.m = m
         self.lamb = lamb
         self.p = p
+        self.R = R
 
 
     def solve(self):
@@ -21,8 +22,8 @@ class Lasso_problem(object):
         for i in range(n):
             obj += cvx.Minimize(f_1[i])
         obj += cvx.Minimize(f_2)
-
-        self.prob = cvx.Problem(obj)
+        const = [cvx.norm(self.x,2)<=self.R]
+        self.prob = cvx.Problem(obj,const)
         self.prob.solve()
         print(self.prob.status,self.x.value)
 
@@ -30,12 +31,12 @@ class Lasso_problem(object):
         return self.prob.value
 
 class Ridge_problem(object):
-    def __init__(self, n,m,p,lamb):
+    def __init__(self, n,m,p,lamb,R):
         self.n = n
         self.m = m
         self.lamb = lamb
         self.p = p
-
+        self.R = R
 
     def solve(self):
         n,m =self.n,  self.m
@@ -49,8 +50,8 @@ class Ridge_problem(object):
         for i in range(n):
             obj += cvx.Minimize(f_1[i])
         obj += cvx.Minimize(f_2)
-
-        self.prob = cvx.Problem(obj)
+        const = [cvx.norm(self.x,2)<=self.R]
+        self.prob = cvx.Problem(obj,const)
         self.prob.solve()
         print(self.prob.status,self.x.value)
 
@@ -58,11 +59,12 @@ class Ridge_problem(object):
         return self.prob.value
 
 class Dist_problem(object):
-    def __init__(self, n,m,p,lamb):
+    def __init__(self, n,m,p,lamb,R):
         self.n = n
         self.m = m
         self.lamb = lamb
         self.p = p
+        self.R = R
 
     def solve(self):
         n,m =self.n,  self.m
@@ -75,7 +77,8 @@ class Dist_problem(object):
         for i in range(n):
             obj += cvx.Minimize(f_1[i])
 
-        self.prob = cvx.Problem(obj)
+        const = [cvx.norm(self.x,2)<=self.R]
+        self.prob = cvx.Problem(obj,const)
         self.prob.solve()
         print(self.prob.status,self.x.value)
 
