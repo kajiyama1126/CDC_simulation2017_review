@@ -1,0 +1,218 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from agent import Agent, Agent_moment_CDC2017_paper,Agent_moment_CDC2017,Agent_moment_CDC2017_L2,Agent_moment_CDC2017_Dist
+from make_communication import Communication
+from problem import Lasso_problem
+
+
+class iteration_L1(object):
+    def __init__(self, n, m, step, lamb, R, pattern, iterate):
+        """
+        :param n: int
+        :param m: int
+        :param lamb: float
+        :return: float,float,float
+        """
+        self.n = n
+        self.m = m
+        self.step = step
+        self.lamb = lamb
+        self.R = R
+        self.pattern = pattern
+        self.iterate = iterate
+
+        self.main()
+
+    def optimal(self):#L1
+        """
+        :return:  float, float
+        """
+        self.p = [np.random.randn(self.m) for i in range(self.n)]
+        # p = [np.array([1,1,0.1,1,0])  for i in range(n)]
+        self.p_num = np.array(self.p)
+        # np.reshape(p)
+        prob = Lasso_problem(self.n, self.m, self.p_num, self.lamb, self.R)
+        prob.solve()
+        x_opt = np.array(prob.x.value)  # 最適解
+        x_opt = np.reshape(x_opt, (-1,))  # reshape
+        f_opt = prob.send_f_opt()
+        return x_opt, f_opt
+
+    def main(self):
+        self.x_opt, self.f_opt = self.optimal()
+        self.P, self.P_history = self.make_communication_graph()
+        f_error_history = [[] for i in range(self.pattern)]
+        for agent in range(self.pattern):
+            f_error_history[agent] = self.iteration(agent)
+        print('finish')
+
+        self.make_graph(f_error_history)
+
+    def make_graph(self,f_error):
+        label = ['DSM', 'Proposed']
+        line = ['-', '-.']
+        for i in range(self.pattern):
+            stepsize = '_s(k)=' + str(self.step[i]) + '/k+1'
+            plt.plot(f_error[i], label=label[i % 2] + stepsize, linestyle=line[i % 2],linewidth=1)
+        plt.legend()
+        plt.yscale('log')
+        plt.show()
+
+    def make_communication_graph(self):  # 通信グラフを作成＆保存
+        weight_graph = Communication(self.n, 4, 0.3)
+        weight_graph.make_connected_WS_graph()
+        P = weight_graph.P
+        P_history = []
+        for k in range(self.iterate):  # 通信グラフを作成＆保存
+            weight_graph.make_connected_WS_graph()
+            P_history.append(weight_graph.P)
+        return P, P_history
+
+    def make_agent(self,pattern):#L1専用
+        Agents = []
+        s = self.step[pattern]
+        for i in range(self.n):
+            if pattern % 2 == 0:
+                Agents.append(Agent(self.n, self.m, self.p[i], s, self.lamb, name=i, weight=None, R=self.R))
+            elif pattern % 2 == 1:
+                Agents.append(
+                    Agent_moment_CDC2017(self.n, self.m, self.p[i], s, self.lamb, name=i, weight=None, R=self.R))
+
+        return Agents
+
+    def iteration(self, pattern):
+        Agents = self.make_agent(pattern)
+        f_error_history = []
+        for k in range(self.iterate):
+            # グラフの時間変化
+            for i in range(self.n):
+                Agents[i].weight = self.P_history[k][i]
+
+            for i in range(self.n):
+                for j in range(self.n):
+                    x_i, name = Agents[i].send()
+                    Agents[j].receive(x_i, name)
+
+            for i in range(self.n):
+                Agents[i].update(k)
+
+            # x_ave = 0
+            # for i in range(n):
+            #     x_ave += 1.0/n * Agents[i].x_i
+            f_value = []
+            for i in range(self.n):
+                x_i = Agents[i].x_i
+                estimate_value = self.optimal_value(x_i)
+                f_value.append(estimate_value)
+
+            # x_error_history[agent].append(np.linalg.norm(Agents[0].x_i- x_opt)**2)
+            f_error_history.append(np.max(f_value) - self.f_opt)
+
+        return f_error_history
+
+    def optimal_value(self, x_i):#L1専用
+        """\
+        :param x_i: float
+        :param p:float
+        :param n:int
+        :param m:int
+        :param lamb:float
+        :return:float
+        """
+        p_all = np.reshape(self.p, (-1,))
+        c = np.ones(self.n)
+        d = np.reshape(c, (self.n, -1))
+        A = np.kron(d, np.identity(self.m))
+        tmp = np.dot(A, x_i) - p_all
+        L1 = self.lamb * self.n * np.linalg.norm(x_i, 1)
+        f_opt = 1 / 2 * (np.linalg.norm(tmp)) ** 2 + L1
+        return f_opt
+
+class iteration_L2(iteration_L1):
+    def __init__(self,n, m, step, lamb, R, pattern, iterate):
+        super(iteration_L2,self).__init__(n, m, step, lamb, R, pattern, iterate)
+
+    def make_agent(self,pattern):
+        Agents = []
+        s = self.step[pattern]
+        for i in range(self.n):
+            if pattern % 2 == 0:
+                Agents.append(Agent(self.n, self.m, self.p[i], s, self.lamb, name=i, weight=None, R=self.R))
+            elif pattern % 2 == 1:
+                Agents.append(
+                    Agent_moment_CDC2017_L2(self.n, self.m, self.p[i], s, self.lamb, name=i, weight=None, R=self.R))
+
+        return Agents
+
+    def optimal_value(self, x_i):
+        """\
+        :param x_i: float
+        :param p:float
+        :param n:int
+        :param m:int
+        :param lamb:float
+        :return:float
+        """
+        p_all = np.reshape(self.p, (-1,))
+        c = np.ones(self.n)
+        d = np.reshape(c, (self.n, -1))
+        A = np.kron(d, np.identity(self.m))
+        tmp = np.dot(A, x_i) - p_all
+        L2 = self.lamb * self.n * np.linalg.norm(x_i, 2) ** 2
+        f_opt = 1 / 2 * (np.linalg.norm(tmp)) ** 2 + L2
+        return f_opt
+
+class iteration_Dist(iteration_L1):
+    def __init__(self,n, m, step, lamb, R, pattern, iterate):
+        super(iteration_Dist,self).__init__(n, m, step, lamb, R, pattern, iterate)
+
+    def make_agent(self,pattern):
+        Agents = []
+        s = self.step[pattern]
+        for i in range(self.n):
+            if pattern % 2 == 0:
+                Agents.append(Agent(self.n, self.m, self.p[i], s, self.lamb, name=i, weight=None, R=self.R))
+            elif pattern % 2 == 1:
+                Agents.append(
+                    Agent_moment_CDC2017_Dist(self.n, self.m, self.p[i], s, self.lamb, name=i, weight=None, R=self.R))
+
+        return Agents
+
+    def optimal_value(self,x_i):
+        """
+        :param x_i: float
+        :param p:float
+        :param n:int
+        :param m:int
+        :param lamb:float
+        :return:float
+        """
+        f_opt = 0
+        for i in range(self.n):
+            f_opt += np.linalg.norm(x_i - self.p[i])
+
+        return f_opt
+
+class iteration_L1_paper(iteration_L1):
+    def make_agent(self,pattern):#L1専用
+        Agents = []
+        s = self.step[pattern]
+        for i in range(self.n):
+            if pattern % 2 == 0:
+                Agents.append(Agent(self.n, self.m, self.p[i], s, self.lamb, name=i, weight=None, R=self.R))
+            elif pattern % 2 == 1:
+                Agents.append(
+                    Agent_moment_CDC2017_paper(self.n, self.m, self.p[i], s, self.lamb, name=i, weight=None, R=self.R))
+
+        return Agents
+
+if __name__ =='__main__':
+    n = 20
+    m = 10
+    lamb = 0.1
+    R = 10
+    np.random.seed(0)  # ランダム値固定
+    pattern = 6
+    test = 10000
+    step = [1.,1.,2.,2.,3.,3.]
+    tmp = iteration_L1_paper(n, m,  step, lamb,R, pattern, test)

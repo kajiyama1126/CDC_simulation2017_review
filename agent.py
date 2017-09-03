@@ -81,10 +81,10 @@ class Agent_moment_CDC2017(Agent):
 
 class Agent_moment_CDC2017_paper(Agent_moment_CDC2017):
     def hat_step(self,k):
-        return 100/(10000 + k)**0.6
+        return (10000/(10000 + k)) ** 0.6
 
     def update(self, k):
-        self.gamma = 0.9
+        self.gamma = 0.99
         self.x[self.name] = self.x_i
         self.v[self.name] = self.v_i
 

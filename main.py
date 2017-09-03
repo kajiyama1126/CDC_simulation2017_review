@@ -7,7 +7,7 @@ import numpy as np
 # import seaborn
 from agent import Agent, Agent_moment_CDC2017, Agent_L2, Agent_moment_CDC2017_L2, Agent_Dist, Agent_moment_CDC2017_Dist,Agent_moment_CDC2017_paper
 from make_communication import Communication
-from problem import Lasso_problem, Ridge_problem, Dist_problem
+from problem import Lasso_problem, Ridge_problem, Dist_problem,New_Lasso_problem
 
 
 # @jit(f8(f8[:], f8[:], i8, i8, f8))
@@ -90,6 +90,19 @@ def optimal_L1(n, m, lamb,R):
     f_opt = prob.send_f_opt()
     return p, x_opt, f_opt
 
+def new_optimal_L1(n,m,lamb,R):
+    p = [np.random.randn(m) for i in range(n)]
+    # p = [np.array([1,1,0.1,1,0])  for i in range(n)]
+    A = [np.random.randn(m,m) + np.identity(m) for i in range(n)]
+    p_num = np.array(p)
+    A_num = np.array(A)
+    # np.reshape(p)
+    prob = New_Lasso_problem(n, m,p_num, lamb,R,A_num)
+    prob.solve()
+    x_opt = np.array(prob.x.value)  # 最適解
+    x_opt = np.reshape(x_opt, (-1,))  # reshape
+    f_opt = prob.send_f_opt()
+    return A,p, x_opt, f_opt
 
 def optimal_L2(n, m, lamb,R):
     """
@@ -309,6 +322,8 @@ def main_L1_paper(n, m, step, lamb,R, pattern, test):
     print('finish')
 
     make_graph(pattern, f_error_history,step)
+
+
 
 def main_L2(n, m, step, lamb,R, pattern, test):
     p, x_opt, f_opt = optimal_L2(n, m, lamb,R)
