@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from agent import Agent, Agent_moment_CDC2017_paper,Agent_moment_CDC2017,Agent_moment_CDC2017_L2,Agent_moment_CDC2017_Dist
 from make_communication import Communication
-from problem import Lasso_problem
+from problem import Lasso_problem,Ridge_problem,Dist_problem,New_Lasso_problem
 
 
 class iteration_L1(object):
@@ -132,6 +132,21 @@ class iteration_L2(iteration_L1):
     def __init__(self,n, m, step, lamb, R, pattern, iterate):
         super(iteration_L2,self).__init__(n, m, step, lamb, R, pattern, iterate)
 
+    def optimal(self):#L1
+        """
+        :return:  float, float
+        """
+        self.p = [np.random.randn(self.m) for i in range(self.n)]
+        # p = [np.array([1,1,0.1,1,0])  for i in range(n)]
+        self.p_num = np.array(self.p)
+        # np.reshape(p)
+        prob = Ridge_problem(self.n, self.m, self.p_num, self.lamb, self.R)
+        prob.solve()
+        x_opt = np.array(prob.x.value)  # 最適解
+        x_opt = np.reshape(x_opt, (-1,))  # reshape
+        f_opt = prob.send_f_opt()
+        return x_opt, f_opt
+
     def make_agent(self,pattern):
         Agents = []
         s = self.step[pattern]
@@ -165,6 +180,21 @@ class iteration_L2(iteration_L1):
 class iteration_Dist(iteration_L1):
     def __init__(self,n, m, step, lamb, R, pattern, iterate):
         super(iteration_Dist,self).__init__(n, m, step, lamb, R, pattern, iterate)
+
+    def optimal(self):
+        """
+        :return:  float, float
+        """
+        self.p = [np.random.randn(self.m) for i in range(self.n)]
+        # p = [np.array([1,1,0.1,1,0])  for i in range(n)]
+        self.p_num = np.array(self.p)
+        # np.reshape(p)
+        prob = Dist_problem(self.n, self.m, self.p_num, self.lamb, self.R)
+        prob.solve()
+        x_opt = np.array(prob.x.value)  # 最適解
+        x_opt = np.reshape(x_opt, (-1,))  # reshape
+        f_opt = prob.send_f_opt()
+        return x_opt, f_opt
 
     def make_agent(self,pattern):
         Agents = []
@@ -205,6 +235,42 @@ class iteration_L1_paper(iteration_L1):
                     Agent_moment_CDC2017_paper(self.n, self.m, self.p[i], s, self.lamb, name=i, weight=None, R=self.R))
 
         return Agents
+
+class new_iteration_L1(iteration_L1):
+    def optimal(self):#L1
+        """
+        :return:  float, float
+        """
+        self.p = [np.random.randn(self.m) for i in range(self.n)]
+        self.A = [np.random.randn(self.m,self.m) for i in range(self.n)]
+        # p = [np.array([1,1,0.1,1,0])  for i in range(n)]
+        self.p_num = np.array(self.p)
+        self.A_num = np.array(self.A)
+        # np.reshape(p)
+        prob = New_Lasso_problem(self.n, self.m, self.p_num, self.lamb, self.R,self.A_num)
+        prob.solve()
+        x_opt = np.array(prob.x.value)  # 最適解
+        x_opt = np.reshape(x_opt, (-1,))  # reshape
+        f_opt = prob.send_f_opt()
+        return x_opt, f_opt
+
+    def optimal_value(self, x_i):#L1専用
+        """\
+        :param x_i: float
+        :param p:float
+        :param n:int
+        :param m:int
+        :param lamb:float
+        :return:float
+        """
+        p_all = np.reshape(self.p, (-1,))
+        c = np.ones(self.n)
+        d = np.reshape(c, (self.n, -1))
+        A = np.kron(d, np.identity(self.m))
+        tmp = np.dot(A, x_i) - p_all
+        L1 = self.lamb * self.n * np.linalg.norm(x_i, 1)
+        f_opt = 1 / 2 * (np.linalg.norm(tmp)) ** 2 + L1
+        return f_opt
 
 if __name__ =='__main__':
     n = 20
