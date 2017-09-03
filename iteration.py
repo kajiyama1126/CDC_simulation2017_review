@@ -119,13 +119,18 @@ class iteration_L1(object):
         :param lamb:float
         :return:float
         """
-        p_all = np.reshape(self.p, (-1,))
+
         c = np.ones(self.n)
         d = np.reshape(c, (self.n, -1))
-        A = np.kron(d, np.identity(self.m))
-        tmp = np.dot(A, x_i) - p_all
+        e = np.kron(x_i,d)
+        tmp = e-self.p_num
+        # p_all = np.reshape(self.p, (-1,))
+        # c = np.ones(self.n)
+        # d = np.reshape(c, (self.n, -1))
+        # A = np.kron(d, np.identity(self.m))
+        # tmp = np.dot(A, x_i) - p_all
         L1 = self.lamb * self.n * np.linalg.norm(x_i, 1)
-        f_opt = 1 / 2 * (np.linalg.norm(tmp)) ** 2 + L1
+        f_opt = 1 / 2 * (np.linalg.norm(tmp,ord='fro')) ** 2 + L1
         return f_opt
 
 class iteration_L2(iteration_L1):
@@ -242,12 +247,13 @@ class new_iteration_L1(iteration_L1):
         :return:  float, float
         """
         self.p = [np.random.randn(self.m) for i in range(self.n)]
-        self.A = [np.random.randn(self.m,self.m) for i in range(self.n)]
+        self.A = np.array([np.identity(self.m) for i in range(self.n)])
+        # self.A += np.array([np.random.randn(self.m,self.m) for i in range(self.n)])
         # p = [np.array([1,1,0.1,1,0])  for i in range(n)]
         self.p_num = np.array(self.p)
-        self.A_num = np.array(self.A)
+        # self.A_num = np.array(self.A)
         # np.reshape(p)
-        prob = New_Lasso_problem(self.n, self.m, self.p_num, self.lamb, self.R,self.A_num)
+        prob = New_Lasso_problem(self.n, self.m, self.p_num, self.lamb, self.R,self.A)
         prob.solve()
         x_opt = np.array(prob.x.value)  # 最適解
         x_opt = np.reshape(x_opt, (-1,))  # reshape
@@ -263,13 +269,20 @@ class new_iteration_L1(iteration_L1):
         :param lamb:float
         :return:float
         """
-        p_all = np.reshape(self.p, (-1,))
-        c = np.ones(self.n)
-        d = np.reshape(c, (self.n, -1))
-        A = np.kron(d, np.identity(self.m))
-        tmp = np.dot(A, x_i) - p_all
+        p = np.reshape(self.p_num,-1)
+        # c = np.ones(self.n)
+        # d = np.reshape(c, (self.n, -1))
+        # e = np.kron(x_i,d)
+        # tmp = e-self.p_num
+        A_tmp = np.reshape(self.A,(-1,self.m))
+
+        # p_all = np.reshape(self.p, (-1,))
+        # c = np.ones(self.n)
+        # d = np.reshape(c, (self.n, -1))
+        # A = np.kron(d, np.identity(self.m))
+        tmp = np.dot(A_tmp, np.array(x_i))-p
         L1 = self.lamb * self.n * np.linalg.norm(x_i, 1)
-        f_opt = 1 / 2 * (np.linalg.norm(tmp)) ** 2 + L1
+        f_opt = 1 / 2 * (np.linalg.norm(tmp,2)) ** 2 + L1
         return f_opt
 
 if __name__ =='__main__':
@@ -279,6 +292,6 @@ if __name__ =='__main__':
     R = 10
     np.random.seed(0)  # ランダム値固定
     pattern = 6
-    test = 10000
+    test = 1000
     step = [1.,1.,2.,2.,3.,3.]
-    tmp = iteration_L1_paper(n, m,  step, lamb,R, pattern, test)
+    tmp = new_iteration_L1(n, m,  step, lamb,R, pattern, test)
