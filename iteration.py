@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from agent import Agent, Agent_moment_CDC2017_paper,Agent_moment_CDC2017,Agent_moment_CDC2017_L2,Agent_moment_CDC2017_Dist
+from agent import Agent, Agent_moment_CDC2017_paper,Agent_moment_CDC2017,Agent_moment_CDC2017_L2,Agent_moment_CDC2017_Dist,new_Agent,new_Agent_moment_CDC2017
 from make_communication import Communication
 from problem import Lasso_problem,Ridge_problem,Dist_problem,New_Lasso_problem
 
@@ -248,7 +248,7 @@ class new_iteration_L1(iteration_L1):
         """
         self.p = [np.random.randn(self.m) for i in range(self.n)]
         self.A = np.array([np.identity(self.m) for i in range(self.n)])
-        # self.A += np.array([np.random.randn(self.m,self.m) for i in range(self.n)])
+        # self.A += 0.1*np.array([np.random.randn(self.m,self.m) for i in range(self.n)])
         # p = [np.array([1,1,0.1,1,0])  for i in range(n)]
         self.p_num = np.array(self.p)
         # self.A_num = np.array(self.A)
@@ -285,13 +285,25 @@ class new_iteration_L1(iteration_L1):
         f_opt = 1 / 2 * (np.linalg.norm(tmp,2)) ** 2 + L1
         return f_opt
 
+    def make_agent(self,pattern):#L1専用
+        Agents = []
+        s = self.step[pattern]
+        for i in range(self.n):
+            if pattern % 2 == 0:
+                Agents.append(new_Agent(self.n, self.m,self.A[i], self.p[i], s, self.lamb, name=i, weight=None, R=self.R))
+            elif pattern % 2 == 1:
+                Agents.append(
+                    new_Agent_moment_CDC2017(self.n, self.m,self.A[i],  self.p[i], s, self.lamb, name=i, weight=None, R=self.R))
+
+        return Agents
+
 if __name__ =='__main__':
     n = 20
-    m = 10
+    m = 50
     lamb = 0.1
-    R = 10
+    R = 1000
     np.random.seed(0)  # ランダム値固定
-    pattern = 6
+    pattern = 10
     test = 1000
-    step = [1.,1.,2.,2.,3.,3.]
+    step = [0.1,0.1, 0.25,0.25,0.5,0.5,1.,1.,2.,2.]
     tmp = new_iteration_L1(n, m,  step, lamb,R, pattern, test)

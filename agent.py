@@ -55,6 +55,18 @@ class Agent_Dist(Agent):
         grad = (self.x_i-self.p)/np.linalg.norm((self.x_i-self.p),2)
         return grad
 
+class new_Agent(Agent):
+    def __init__(self, n, m, A, p, step, lamb, name, weight=None, R=100000):
+        super(new_Agent,self).__init__(n,m,p,step,lamb,name,weight=weight,R=R)
+        self.A = A
+
+    def subgrad(self):
+        A_to = self.A.T
+        grad = np.dot(A_to,(np.dot(self.A,self.x_i) - self.p))
+        subgrad_l1 = self.lamb*np.sign(self.x_i)
+        subgrad = grad + subgrad_l1
+        return subgrad
+
 
 class Agent_moment_CDC2017(Agent):
     def __init__(self, n, m, p,step, lamb, name, weight=None,R = 100000):
@@ -76,6 +88,28 @@ class Agent_moment_CDC2017(Agent):
         self.v[self.name] = self.v_i
 
         self.v_i = self.gamma * np.dot(self.weight, self.v) + self.s(k)*(0.1) * self.subgrad()
+        self.x_i = np.dot(self.weight, self.x) - self.v_i
+        self.x_i = self.project(self.x_i)
+
+class new_Agent_moment_CDC2017(new_Agent):
+    def __init__(self, n, m,A, p,step, lamb, name, weight=None,R = 100000):
+        super(new_Agent_moment_CDC2017, self).__init__(n, m,A, p,step, lamb, name, weight,R)
+        self.gamma = 0.9
+        self.v_i = self.subgrad()
+        self.v = np.zeros([self.n, self.m])
+
+    def send(self):
+        return (self.x_i, self.v_i), self.name
+
+    def receive(self, x_j, name):
+        self.x[name] = x_j[0]
+        self.v[name] = x_j[1]
+
+    def update(self, k):
+        self.x[self.name] = self.x_i
+        self.v[self.name] = self.v_i
+
+        self.v_i = self.gamma * np.dot(self.weight, self.v) + self.s(k) * self.subgrad()
         self.x_i = np.dot(self.weight, self.x) - self.v_i
         self.x_i = self.project(self.x_i)
 
