@@ -79,6 +79,19 @@ class Agent_moment_CDC2017(Agent):
         self.x_i = np.dot(self.weight, self.x) - self.v_i
         self.x_i = self.project(self.x_i)
 
+class Agent_moment_CDC2017_paper(Agent_moment_CDC2017):
+    def hat_step(self,k):
+        return 100/(10000 + k)**0.6
+
+    def update(self, k):
+        self.gamma = 0.9
+        self.x[self.name] = self.x_i
+        self.v[self.name] = self.v_i
+
+        self.v_i = self.gamma *self.hat_step(k)* np.dot(self.weight, self.v) + self.s(k) *0.1* self.subgrad()
+        self.x_i = np.dot(self.weight, self.x) - self.v_i
+        self.x_i = self.project(self.x_i)
+
 class Agent_moment_CDC2017_L2(Agent_moment_CDC2017):
     def subgrad(self):
         grad = self.x_i-self.p

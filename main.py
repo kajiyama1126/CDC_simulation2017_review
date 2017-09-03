@@ -5,7 +5,7 @@ import matplotlib.pylab as plt
 import numpy as np
 # from numba import jit, f8, i8
 # import seaborn
-from agent import Agent, Agent_moment_CDC2017, Agent_L2, Agent_moment_CDC2017_L2, Agent_Dist, Agent_moment_CDC2017_Dist
+from agent import Agent, Agent_moment_CDC2017, Agent_L2, Agent_moment_CDC2017_L2, Agent_Dist, Agent_moment_CDC2017_Dist,Agent_moment_CDC2017_paper
 from make_communication import Communication
 from problem import Lasso_problem, Ridge_problem, Dist_problem
 
@@ -167,6 +167,42 @@ def iteration_L1(n, m, p, step, lamb,R, test, P_history, f_opt, pattern):
 
     return f_error_history
 
+def iteration_L1_paper(n, m, p, step, lamb,R, test, P_history, f_opt, pattern):
+    Agents = []
+    s = step[pattern]
+    for i in range(n):
+        if pattern % 2 == 0:
+            Agents.append(Agent(n, m, p[i], s, lamb, name=i, weight=None,R=R))
+        elif pattern % 2 == 1:
+            Agents.append(Agent_moment_CDC2017_paper(n, m, p[i], s, lamb, name=i, weight=None,R=R))
+
+    f_error_history = []
+    for k in range(test):
+        # グラフの時間変化
+        for i in range(n):
+            Agents[i].weight = P_history[k][i]
+
+        for i in range(n):
+            for j in range(n):
+                x_i, name = Agents[i].send()
+                Agents[j].receive(x_i, name)
+
+        for i in range(n):
+            Agents[i].update(k)
+
+        # x_ave = 0
+        # for i in range(n):
+        #     x_ave += 1.0/n * Agents[i].x_i
+        f_value = []
+        for i in range(n):
+            x_i = Agents[i].x_i
+            estimate_value = L1_optimal_value(x_i, p, n, m, lamb)
+            f_value.append(estimate_value)
+
+        # x_error_history[agent].append(np.linalg.norm(Agents[0].x_i- x_opt)**2)
+        f_error_history.append(np.max(f_value) - f_opt)
+
+    return f_error_history
 
 # @jit(f8[:](i8, i8, f8, f8, f8, i8, f8[:, :, :], f8, i8))
 def iteration_L2(n, m, p, step, lamb,R, test, P_history, f_opt, pattern):
@@ -264,6 +300,16 @@ def main_L1(n, m, step, lamb,R, pattern, test):
 
     make_graph(pattern, f_error_history,step)
 
+def main_L1_paper(n, m, step, lamb,R, pattern, test):
+    p, x_opt, f_opt = optimal_L1(n, m, lamb,R)
+    P, P_history = make_communication_graph(test)
+    f_error_history = [[] for i in range(pattern)]
+    for agent in range(pattern):
+        f_error_history[agent] = iteration_L1_paper(n, m, p, step, lamb,R, test, P_history, f_opt, agent)
+    print('finish')
+
+    make_graph(pattern, f_error_history,step)
+
 def main_L2(n, m, step, lamb,R, pattern, test):
     p, x_opt, f_opt = optimal_L2(n, m, lamb,R)
     P, P_history = make_communication_graph(test)
@@ -297,15 +343,15 @@ def make_graph(pattern, f_error,step):
 
 if __name__ == '__main__':
     t = time.time()
-    n = 50
+    n = 20
     m = 10
     lamb = 0.1
-    R = 0.1
+    R = 10
     np.random.seed(0)  # ランダム値固定
-    pattern = 2
+    pattern = 8
     test = 1000
-    step = [0.5,0.5,1.,1.,2.,2.,3.,3.,5.,5.]
-    main_L1(n, m,  step, lamb,R, pattern, test)
+    step = [0.2,0.2,0.5,0.5,1.,1,2.,2.]
+    main_L1_paper(n, m,  step, lamb,R, pattern, test)
     print(time.time() - t)
     # main_L2(n, m, step, lamb, pattern, test)
     # main_Dist(n, m, step, lamb, pattern, test)
