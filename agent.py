@@ -67,6 +67,16 @@ class new_Agent(Agent):
         subgrad = grad + subgrad_l1
         return subgrad
 
+class new_Agent_L2(new_Agent):
+    def subgrad(self):
+        A_to = self.A.T
+        grad = np.dot(A_to,(np.dot(self.A,self.x_i) - self.p))
+        grad_l2 = 2 * self.lamb * self.x_i
+        subgrad = grad + grad_l2
+        return subgrad
+
+
+
 
 class Agent_moment_CDC2017(Agent):
     def __init__(self, n, m, p,step, lamb, name, weight=None,R = 100000):
@@ -113,9 +123,29 @@ class new_Agent_moment_CDC2017(new_Agent):
         self.x_i = np.dot(self.weight, self.x) - self.v_i
         self.x_i = self.project(self.x_i)
 
+class new_Agent_moment_CDC2017_paper(new_Agent_moment_CDC2017):
+    def hat_step(self,k):
+        return (1000/(1000+ k)) ** 0.51
+
+    def update(self, k):
+        self.x[self.name] = self.x_i
+        self.v[self.name] = self.v_i
+
+        self.v_i = self.gamma *self.hat_step(k) * np.dot(self.weight, self.v) + self.s(k) * self.subgrad()
+        self.x_i = np.dot(self.weight, self.x) - self.v_i
+        self.x_i = self.project(self.x_i)
+
+class new_Agent_moment_CDC2017_L2(new_Agent_moment_CDC2017):
+    def subgrad(self):
+        A_to = self.A.T
+        grad = np.dot(A_to,(np.dot(self.A,self.x_i) - self.p))
+        grad_l2 = 2 * self.lamb * self.x_i
+        subgrad = grad + grad_l2
+        return subgrad
+
 class Agent_moment_CDC2017_paper(Agent_moment_CDC2017):
     def hat_step(self,k):
-        return (10000/(10000 + k)) ** 0.6
+        return (1000/(1000 + k)) ** 0.6
 
     def update(self, k):
         self.gamma = 0.99
