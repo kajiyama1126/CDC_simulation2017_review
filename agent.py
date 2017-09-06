@@ -29,7 +29,7 @@ class Agent(object):
 
     def s(self, k):
         return self.step/ (k + 1.0)
-
+        # return self.step/(k+10)
     def project(self,x):
         if np.linalg.norm(x) <= self.R:
             return x
