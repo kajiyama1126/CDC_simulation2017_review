@@ -3,7 +3,7 @@ import numpy as np
 
 from agent import Agent, Agent_moment_CDC2017_paper, Agent_moment_CDC2017, Agent_moment_CDC2017_L2, \
     Agent_moment_CDC2017_Dist, new_Agent, new_Agent_moment_CDC2017, new_Agent_L2, \
-    new_Agent_moment_CDC2017_L2
+    new_Agent_moment_CDC2017_L2,new_Agent_harnessing_L2
 from make_communication import Communication
 from problem import Lasso_problem, Ridge_problem, Dist_problem, New_Lasso_problem, New_Ridge_problem
 
@@ -367,6 +367,16 @@ class new_iteration_L2(new_iteration_L1):
         L2 = self.lamb * self.n * (np.linalg.norm(x_i, 2)) ** 2
         f_opt = 1 / 2 * (np.linalg.norm(tmp, 2)) ** 2 + L2
         return f_opt
+
+class new_iteration_L2_harnessing(new_iteration_L2):
+    def make_agent(self, pattern):
+        Agents = []
+        s = self.step[pattern]
+        for i in range(self.n):
+            Agents.append(
+                new_Agent_harnessing_L2(self.n, self.m, self.A[i], self.p[i], s, self.lamb, name=i, weight=None,
+                                            R=self.R))
+        return Agents
 
 
 if __name__ == '__main__':

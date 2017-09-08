@@ -182,13 +182,20 @@ class Agent_moment_CDC2017_Dist(Agent_moment_CDC2017):
 #         self.v_i = self.gamma *self.s(k)/self.s(k-1)*np.dot(self.weight, self.v) + self.s(k)*(0.2) * self.subgrad()
 #         self.x_i = np.dot(self.weight, self.x) - self.v_i
 
-class Agent_harnessing(Agent):
-    def __init__(self, n, m, p,s, lamb, name, weight=None,R = 100000):
-        super(Agent_harnessing, self).__init__(n, m, p,s, lamb, name, weight,R=R)
+class Agent_harnessing(new_Agent):
+    def __init__(self, n, m,A, p,s, lamb, name, weight=None,R = 100000):
+        super(Agent_harnessing, self).__init__(n, m,A, p,s, lamb, name, weight,R=R)
 
         self.v_i = self.subgrad()
         self.v = np.zeros([self.n, self.m])
         self.eta = 0.01
+
+    def send(self):
+        return (self.x_i, self.v_i), self.name
+
+    def receive(self, x_j, name):
+        self.x[name] = x_j[0]
+        self.v[name] = x_j[1]
 
     def update(self, k):
         self.x[self.name] = self.x_i
@@ -200,7 +207,7 @@ class Agent_harnessing(Agent):
 class new_Agent_harnessing_L2(Agent_harnessing):
     def __init__(self, n, m,A, p,s, lamb, name, weight=None,R=1000000):
         self.A = A
-        super(Agent_harnessing, self).__init__(n, m, p, s,lamb, name, weight,R=R)
+        super(new_Agent_harnessing_L2, self).__init__(n, m, p,A, s,lamb, name, weight,R=R)
 
 
     def subgrad(self):
