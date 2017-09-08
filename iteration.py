@@ -2,9 +2,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from agent import Agent, Agent_moment_CDC2017_paper, Agent_moment_CDC2017, Agent_moment_CDC2017_L2, \
-    Agent_moment_CDC2017_Dist, new_Agent, new_Agent_moment_CDC2017,new_Agent_moment_CDC2017_paper,new_Agent_L2,new_Agent_moment_CDC2017_L2
+    Agent_moment_CDC2017_Dist, new_Agent, new_Agent_moment_CDC2017, new_Agent_L2, \
+    new_Agent_moment_CDC2017_L2
 from make_communication import Communication
-from problem import Lasso_problem, Ridge_problem, Dist_problem, New_Lasso_problem,New_Ridge_problem
+from problem import Lasso_problem, Ridge_problem, Dist_problem, New_Lasso_problem, New_Ridge_problem
 
 
 class iteration_L1(object):
@@ -54,10 +55,13 @@ class iteration_L1(object):
         label = ['DSM', 'Proposed']
         line = ['-', '-.']
         for i in range(self.pattern):
-            stepsize = '_s(k)=' + str(self.step[i]) + '/k+1'
+            # stepsize = '_s(k)=' + str(self.step[i]) + '/k+10'
+            stepsize = ' c=' + str(self.step[i])
             plt.plot(f_error[i], label=label[i % 2] + stepsize, linestyle=line[i % 2], linewidth=1)
         plt.legend()
         plt.yscale('log')
+        plt.xlabel('iteration $k$',fontsize=10)
+        plt.ylabel('$max_{i}$ $f(x_i(k))-f^*$',fontsize=10)
         plt.show()
 
     def make_communication_graph(self):  # 通信グラフを作成＆保存
@@ -306,21 +310,6 @@ class new_iteration_L1(iteration_L1):
         return Agents
 
 
-class new_iteration_L1_paper(new_iteration_L1):
-    def make_agent(self, pattern):  # L1専用
-        Agents = []
-        s = self.step[pattern]
-        for i in range(self.n):
-            if pattern % 2 == 0:
-                Agents.append(
-                    new_Agent(self.n, self.m, self.A[i], self.p[i], s, self.lamb, name=i, weight=None, R=self.R))
-            elif pattern % 2 == 1:
-                Agents.append(
-                    new_Agent_moment_CDC2017_paper(self.n, self.m, self.A[i], self.p[i], s, self.lamb, name=i,
-                                                   weight=None, R=self.R))
-
-        return Agents
-
 class new_iteration_L2(new_iteration_L1):
     def optimal(self):  # L1
         """
@@ -345,10 +334,12 @@ class new_iteration_L2(new_iteration_L1):
         s = self.step[pattern]
         for i in range(self.n):
             if pattern % 2 == 0:
-                Agents.append(new_Agent_L2(self.n, self.m,self.A[i], self.p[i], s, self.lamb, name=i, weight=None, R=self.R))
+                Agents.append(
+                    new_Agent_L2(self.n, self.m, self.A[i], self.p[i], s, self.lamb, name=i, weight=None, R=self.R))
             elif pattern % 2 == 1:
                 Agents.append(
-                    new_Agent_moment_CDC2017_L2(self.n, self.m,self.A[i], self.p[i], s, self.lamb, name=i, weight=None, R=self.R))
+                    new_Agent_moment_CDC2017_L2(self.n, self.m, self.A[i], self.p[i], s, self.lamb, name=i, weight=None,
+                                                R=self.R))
 
         return Agents
 
@@ -373,9 +364,10 @@ class new_iteration_L2(new_iteration_L1):
         # d = np.reshape(c, (self.n, -1))
         # A = np.kron(d, np.identity(self.m))
         tmp = np.dot(A_tmp, np.array(x_i)) - p
-        L2 = self.lamb * self.n * (np.linalg.norm(x_i, 2))**2
+        L2 = self.lamb * self.n * (np.linalg.norm(x_i, 2)) ** 2
         f_opt = 1 / 2 * (np.linalg.norm(tmp, 2)) ** 2 + L2
         return f_opt
+
 
 if __name__ == '__main__':
     n = 50
@@ -384,8 +376,10 @@ if __name__ == '__main__':
     R = 10
     np.random.seed(0)  # ランダム値固定
     pattern = 10
-    test = 1000
-    step = [0.1, 0.1, 0.25, 0.25, 0.5, 0.5, 1., 1., 2., 2.]
+    test = 2000
+    step = [0.25, 0.25, 0.5, 0.5, 1., 1., 2., 2.]
+    # step = [0.25, 0.5, 0.25, 0.7, 0.25, 0.8, 0.25, 0.9, 0.25, 0.95]
     # step = np.array([[0.1 *(j+1) for i in range(2)] for j in range(10)])
-    step = np.reshape(step,-1)
+    step = np.reshape(step, -1)
     tmp = new_iteration_L1_paper(n, m, step, lamb, R, pattern, test)
+    # tmp = new_iteration_L1_paper2(n, m, step, lamb, R, pattern, test)

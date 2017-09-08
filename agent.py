@@ -28,8 +28,8 @@ class Agent(object):
         self.x[name] = x_j
 
     def s(self, k):
-        return self.step/ (k + 1.0)
-        # return self.step/(k+10)
+        # return self.step/ (k + 1.0)
+        return self.step/(k+10)
     def project(self,x):
         if np.linalg.norm(x) <= self.R:
             return x
@@ -135,6 +135,13 @@ class new_Agent_moment_CDC2017_paper(new_Agent_moment_CDC2017):
         self.x_i = np.dot(self.weight, self.x) - self.v_i
         self.x_i = self.project(self.x_i)
 
+class new_Agent_moment_CDC2017_paper2(new_Agent_moment_CDC2017_paper):
+    def __init__(self, n, m,A, p,step, lamb, name, weight=None,R = 100000):
+        super(new_Agent_moment_CDC2017_paper2, self).__init__(n, m,A, p,step, lamb, name, weight,R)
+        self.gamma = step
+        self.step = 0.5
+        # self.gamma = gamma_box[int(self.name / 2.0)]
+
 class new_Agent_moment_CDC2017_L2(new_Agent_moment_CDC2017):
     def subgrad(self):
         A_to = self.A.T
@@ -176,8 +183,8 @@ class Agent_moment_CDC2017_Dist(Agent_moment_CDC2017):
 #         self.x_i = np.dot(self.weight, self.x) - self.v_i
 
 class Agent_harnessing(Agent):
-    def __init__(self, n, m, p, lamb, name, weight=None):
-        super(Agent_harnessing, self).__init__(n, m, p, lamb, name, weight)
+    def __init__(self, n, m, p,s, lamb, name, weight=None,R = 100000):
+        super(Agent_harnessing, self).__init__(n, m, p,s, lamb, name, weight,R=R)
 
         self.v_i = self.subgrad()
         self.v = np.zeros([self.n, self.m])
@@ -189,3 +196,17 @@ class Agent_harnessing(Agent):
         grad_bf = self.subgrad()
         self.x_i = np.dot(self.weight, self.x) - self.v_i
         self.v_i = np.dot(self.weight, self.v) + self.eta*( self.subgrad() -grad_bf)
+
+class new_Agent_harnessing_L2(Agent_harnessing):
+    def __init__(self, n, m,A, p,s, lamb, name, weight=None,R=1000000):
+        self.A = A
+        super(Agent_harnessing, self).__init__(n, m, p, s,lamb, name, weight,R=R)
+
+
+    def subgrad(self):
+        A_to = self.A.T
+        grad = np.dot(A_to,(np.dot(self.A,self.x_i) - self.p))
+        grad_l2 = 2 * self.lamb * self.x_i
+        subgrad = grad + grad_l2
+        return subgrad
+
