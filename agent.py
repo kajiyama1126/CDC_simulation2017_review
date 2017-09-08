@@ -1,5 +1,5 @@
 import numpy as np
-
+import copy
 
 class Agent(object):
     def __init__(self, n, m, p,step, lamb, name, weight=None,R = 100000):
@@ -182,13 +182,13 @@ class Agent_moment_CDC2017_Dist(Agent_moment_CDC2017):
 #         self.v_i = self.gamma *self.s(k)/self.s(k-1)*np.dot(self.weight, self.v) + self.s(k)*(0.2) * self.subgrad()
 #         self.x_i = np.dot(self.weight, self.x) - self.v_i
 
-class Agent_harnessing(new_Agent):
+class new_Agent_harnessing(new_Agent):
     def __init__(self, n, m,A, p,s, lamb, name, weight=None,R = 100000):
-        super(Agent_harnessing, self).__init__(n, m,A, p,s, lamb, name, weight,R=R)
+        super(new_Agent_harnessing, self).__init__(n, m,A, p,s, lamb, name, weight,R=R)
 
         self.v_i = self.subgrad()
         self.v = np.zeros([self.n, self.m])
-        self.eta = 0.01
+        self.eta = 0.001
 
     def send(self):
         return (self.x_i, self.v_i), self.name
@@ -200,11 +200,11 @@ class Agent_harnessing(new_Agent):
     def update(self, k):
         self.x[self.name] = self.x_i
         self.v[self.name] = self.v_i
-        grad_bf = self.subgrad()
-        self.x_i = np.dot(self.weight, self.x) - self.v_i
-        self.v_i = np.dot(self.weight, self.v) + self.eta*( self.subgrad() -grad_bf)
+        grad_bf = copy.copy(self.subgrad())
+        self.x_i = np.dot(self.weight, self.x) - self.eta * self.v_i
+        self.v_i = np.dot(self.weight, self.v) + self.subgrad()-grad_bf
 
-class new_Agent_harnessing_L2(Agent_harnessing):
+class new_Agent_harnessing_L2(new_Agent_harnessing):
     def __init__(self, n, m,A, p,s, lamb, name, weight=None,R=1000000):
         self.A = A
         super(new_Agent_harnessing_L2, self).__init__(n, m, p,A, s,lamb, name, weight,R=R)
